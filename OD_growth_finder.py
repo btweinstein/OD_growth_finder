@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
+import datetime as datetime
 
 def get_elapsed_hours(x):
     """Assumes x is a datetime.time object."""
@@ -15,10 +16,11 @@ class OD_growth_experiment(object):
         self.path_to_data = path_to_data
         self.data = pd.read_excel(path_to_data)
         # Drop the rows that have NAN's, usually at the end
-        self.data.dropna(inplace=True)
+        self.data.dropna(inplace=True, axis=1)
 
         # Get the times from the data
         times = self.data.loc[:, 'Time']
+        times = times.astype(datetime.time)
         self.elapsed_hours = times.apply(get_elapsed_hours)
 
         # Set the output path
@@ -79,3 +81,5 @@ class OD_growth_experiment(object):
                     self.plot_growth_prediction(cur_col)
                     plt.savefig(cur_col + '.png', dpi=200, bbox_inches='tight')
                     plt.clf()
+
+        return pd.DataFrame(growth_rate_data, columns=['well', 'growth_rate', 'max_time', 'max_index'])
