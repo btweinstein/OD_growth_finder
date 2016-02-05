@@ -10,9 +10,9 @@ def get_elapsed_hours(x):
     return time_in_seconds/(60.*60.)
 
 
-class OD_growth_experiment(object, s=0.05):
+class OD_growth_experiment(object):
 
-    def __init__(self, path_to_data, output_path = './'):
+    def __init__(self, path_to_data, output_path = './', s=0.05):
         self.path_to_data = path_to_data
         self.data = pd.read_excel(path_to_data)
         # Drop the rows that have NAN's, usually at the end
