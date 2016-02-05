@@ -10,7 +10,7 @@ def get_elapsed_hours(x):
     return time_in_seconds/(60.*60.)
 
 
-class OD_growth_experiment(object):
+class OD_growth_experiment(object, s=0.05):
 
     def __init__(self, path_to_data, output_path = './'):
         self.path_to_data = path_to_data
@@ -26,9 +26,12 @@ class OD_growth_experiment(object):
         # Set the output path
         self.output_path = output_path
 
+        # Set the default s for fitting...deals with how close the fit is to the points
+        self.s = s
+
     def get_max_growth_rate(self, well_str):
         data_to_use = np.log(self.data.loc[:, well_str]) # Log of the OD
-        interpolator = sp.interpolate.UnivariateSpline(self.elapsed_hours, data_to_use, k=5, s=.05)
+        interpolator = sp.interpolate.UnivariateSpline(self.elapsed_hours, data_to_use, k=5, s=self.s)
         der = interpolator.derivative()
 
         # Get the approximation of the derivative at all points
@@ -61,7 +64,7 @@ class OD_growth_experiment(object):
 
         plt.legend(loc='best')
 
-    def get_all_growth_rates(self, save_pictures=True):
+    def get_all_growth_rates(self, save_pictures=False):
 
         growth_rate_data = []
 
