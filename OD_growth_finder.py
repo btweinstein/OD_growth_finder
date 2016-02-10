@@ -12,7 +12,7 @@ def get_elapsed_hours(x):
 
 class OD_growth_experiment(object):
 
-    def __init__(self, path_to_data, output_path = './', s=0.05):
+    def __init__(self, path_to_data, output_path = './', s=0.2, constant_background=0):
         self.path_to_data = path_to_data
         self.data = pd.read_excel(path_to_data)
         # Drop the rows that have NAN's, usually at the end
@@ -28,9 +28,10 @@ class OD_growth_experiment(object):
 
         # Set the default s for fitting...deals with how close the fit is to the points
         self.s = s
+        self.constant_background = constant_background
 
     def get_max_growth_rate(self, well_str):
-        data_to_use = np.log(self.data.loc[:, well_str]) # Log of the OD
+        data_to_use = np.log(self.data.loc[:, well_str] - self.constant_background) # Log of the OD
         interpolator = sp.interpolate.UnivariateSpline(self.elapsed_hours, data_to_use, k=5, s=self.s)
         der = interpolator.derivative()
 
@@ -47,7 +48,7 @@ class OD_growth_experiment(object):
     def plot_growth_prediction(self, well_str, hours_around_max = 2):
         maximum_log_slope, maximum_time, maximum_index = self.get_max_growth_rate(well_str)
 
-        data_to_use = np.log(self.data.loc[:, well_str]) # Log of the OD
+        data_to_use = np.log(self.data.loc[:, well_str] - self.constant_background) # Log of the OD
 
         plt.plot(self.elapsed_hours, data_to_use, ls='', marker='.', label='Raw Data')
 
@@ -85,4 +86,7 @@ class OD_growth_experiment(object):
                     plt.savefig(cur_col + '.png', dpi=200, bbox_inches='tight')
                     plt.clf()
 
-        return pd.DataFrame(growth_rate_data, columns=['well', 'growth_rate', 'max_time', 'max_index'])
+        df = pd.DataFrame(growth_rate_data, columns=['well', 'growth_rate', 'max_time', 'max_index'])
+        df['doubling_time'] = np.log(2)/df['growth_rate']
+
+        return df
