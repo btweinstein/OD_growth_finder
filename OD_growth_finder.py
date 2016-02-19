@@ -4,12 +4,6 @@ import scipy as sp
 import matplotlib.pyplot as plt
 import datetime as datetime
 
-def get_elapsed_hours(x):
-    """Assumes x is a datetime.time object."""
-    time_in_seconds = (60.*60.*x.hour + 60*x.minute + x.second)
-    return time_in_seconds/(60.*60.)
-
-
 class OD_growth_experiment(object):
 
     def __init__(self, path_to_data, output_path = './', s=0.2, constant_background=0):
@@ -20,8 +14,7 @@ class OD_growth_experiment(object):
 
         # Get the times from the data
         times = self.data.loc[:, 'Time']
-        times = times.astype(datetime.time)
-        self.elapsed_hours = times.apply(get_elapsed_hours)
+        self.elapsed_minutes = times.values
 
         # Set the output path
         self.output_path = output_path
@@ -31,28 +24,44 @@ class OD_growth_experiment(object):
         self.constant_background = constant_background
 
     def get_max_growth_rate(self, well_str):
-        data_to_use = np.log(self.data.loc[:, well_str] - self.constant_background) # Log of the OD
-        interpolator = sp.interpolate.UnivariateSpline(self.elapsed_hours, data_to_use, k=5, s=self.s)
+        data_to_use = np.log(self.data.loc[:, well_str] - self.constant_background).values # Log of the OD
+        # Drop the negative infinities...indistinguishable from noise
+        to_keep = np.isfinite(data_to_use)
+
+        data_to_use = data_to_use[to_keep]
+        elapsed_minutes = self.elapsed_minutes[to_keep]
+
+        interpolator = sp.interpolate.UnivariateSpline(elapsed_minutes, data_to_use, k=5, s=self.s)
         der = interpolator.derivative()
 
         # Get the approximation of the derivative at all points
-        der_approx = der(self.elapsed_hours)
+        der_approx = der(elapsed_minutes)
 
         # Get the maximum
         maximum_index = np.argmax(der_approx)
         maximum_log_slope = der_approx[maximum_index]
-        maximum_time = self.elapsed_hours.values[maximum_index]
+        maximum_time = elapsed_minutes[maximum_index]
 
-        return maximum_log_slope, maximum_time, maximum_index
+        return maximum_log_slope, maximum_time, maximum_index + np.sum(~to_keep)
 
-    def plot_growth_prediction(self, well_str, hours_around_max = 2):
+    def plot_raw_data(self, well_str):
+        data_to_use = self.data.loc[:, well_str] - self.constant_background
+
+        plt.plot(self.elapsed_minutes, data_to_use, ls='', marker='.', label='Raw Data')
+
+        plt.xlabel('Elapsed Time (minutes)')
+        plt.ylabel(r'OD600')
+
+        plt.legend(loc='best')
+
+    def plot_growth_prediction(self, well_str, minutes_around_max=100):
         maximum_log_slope, maximum_time, maximum_index = self.get_max_growth_rate(well_str)
 
         data_to_use = np.log(self.data.loc[:, well_str] - self.constant_background) # Log of the OD
 
-        plt.plot(self.elapsed_hours, data_to_use, ls='', marker='.', label='Raw Data')
+        plt.plot(self.elapsed_minutes, data_to_use, ls='', marker='.', label='Raw Data')
 
-        times_around_max = np.linspace(maximum_time - hours_around_max, maximum_time + hours_around_max)
+        times_around_max = np.linspace(maximum_time - minutes_around_max, maximum_time + minutes_around_max)
         predicted = times_around_max * maximum_log_slope - maximum_log_slope*maximum_time
         # Add so that predicted is where you expect
         predicted += data_to_use.values[maximum_index]
@@ -60,8 +69,8 @@ class OD_growth_experiment(object):
 
         plt.plot(times_around_max, predicted, ls='-', label='Max Growth', color='red', alpha=0.5)
 
-        plt.xlabel('Elapsed Time (hours)')
-        plt.ylabel(r'$\log$(OD)')
+        plt.xlabel('Elapsed Time (minutes)')
+        plt.ylabel(r'$\log$(OD600)')
 
         plt.legend(loc='best')
 
