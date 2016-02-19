@@ -6,7 +6,7 @@ import datetime as datetime
 
 class OD_growth_experiment(object):
 
-    def __init__(self, path_to_data, output_path = './', s=0.2, constant_background=0):
+    def __init__(self, path_to_data, output_path = './', s=0.2, cutoff_logOD=-6):
         self.path_to_data = path_to_data
         self.data = pd.read_excel(path_to_data)
         # Drop the rows that have NAN's, usually at the end
@@ -24,12 +24,14 @@ class OD_growth_experiment(object):
 
         # Set the default s for fitting...deals with how close the fit is to the points
         self.s = s
-        self.constant_background = constant_background
+
+        # You ignore values with an OD lower than this.
+        self.cutoff_logOD = cutoff_logOD
 
     def get_max_growth_rate(self, well_str):
-        data_to_use = np.log(self.data.loc[:, well_str] - self.constant_background).values # Log of the OD
+        data_to_use = np.log(self.data.loc[:, well_str]).values # Log of the OD
         # Drop the negative infinities...indistinguishable from noise
-        to_keep = np.isfinite(data_to_use)
+        to_keep = data_to_use > self.cutoff_logOD
 
         data_to_use = data_to_use[to_keep]
         elapsed_minutes = self.elapsed_minutes[to_keep]
@@ -45,10 +47,10 @@ class OD_growth_experiment(object):
         maximum_log_slope = der_approx[maximum_index]
         maximum_time = elapsed_minutes[maximum_index]
 
-        return maximum_log_slope, maximum_time, maximum_index + np.sum(~to_keep)
+        return maximum_log_slope, maximum_time
 
     def plot_raw_data(self, well_str):
-        data_to_use = self.data.loc[:, well_str] - self.constant_background
+        data_to_use = self.data.loc[:, well_str]
 
         plt.plot(self.elapsed_minutes, data_to_use, ls='', marker='.', label='Raw Data')
 
@@ -58,15 +60,17 @@ class OD_growth_experiment(object):
         plt.legend(loc='best')
 
     def plot_growth_prediction(self, well_str, minutes_around_max=100):
-        maximum_log_slope, maximum_time, maximum_index = self.get_max_growth_rate(well_str)
+        maximum_log_slope, maximum_time= self.get_max_growth_rate(well_str)
 
-        data_to_use = np.log(self.data.loc[:, well_str] - self.constant_background) # Log of the OD
+        data_to_use = np.log(self.data.loc[:, well_str]) # Log of the OD...make sure background is subtracted
+        # Drop the negative infinities...indistinguishable from noise
 
         plt.plot(self.elapsed_minutes, data_to_use, ls='', marker='.', label='Raw Data')
 
         times_around_max = np.linspace(maximum_time - minutes_around_max, maximum_time + minutes_around_max)
         predicted = times_around_max * maximum_log_slope - maximum_log_slope*maximum_time
         # Add so that predicted is where you expect
+        maximum_index,  = np.where(self.elapsed_minutes == maximum_time)[0]
         predicted += data_to_use.values[maximum_index]
 
 
@@ -88,9 +92,10 @@ class OD_growth_experiment(object):
             if cur_col[0].isalpha() and cur_col[1].isnumeric():
                 cur_growth_rate_data = []
                 cur_growth_rate_data.append(cur_col)
-                maximum_log_slope, maximum_time, maximum_index = self.get_max_growth_rate(cur_col)
+                maximum_log_slope, maximum_time = self.get_max_growth_rate(cur_col)
                 cur_growth_rate_data.append(maximum_log_slope)
                 cur_growth_rate_data.append(maximum_time)
+                maximum_index,  = np.where(self.elapsed_minutes == maximum_time)[0]
                 cur_growth_rate_data.append(maximum_index)
 
                 growth_rate_data.append(cur_growth_rate_data)
