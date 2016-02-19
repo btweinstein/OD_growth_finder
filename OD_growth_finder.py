@@ -16,6 +16,9 @@ class OD_growth_experiment(object):
         times = self.data.loc[:, 'Time']
         self.elapsed_minutes = times.values
 
+        # Drop the times column for simplicity
+        self.data.drop('Time', axis=1, inplace=True)
+
         # Set the output path
         self.output_path = output_path
 
@@ -73,6 +76,8 @@ class OD_growth_experiment(object):
         plt.ylabel(r'$\log$(OD600)')
 
         plt.legend(loc='best')
+
+        plt.ylim(-10, 1)
 
     def get_all_growth_rates(self, save_pictures=False):
 
