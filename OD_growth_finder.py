@@ -47,11 +47,21 @@ class OD_growth_experiment(object):
         # Calculate the slope
         alpha = (1./data_to_use)*der_approx
 
+        slope_of_alpha = der_approx_2/data_to_use - der_approx**2/data_to_use**2
+
         plt.plot(elapsed_minutes, alpha)
         plt.figure()
-        plt.plot(elapsed_minutes, der_approx)
-        plt.figure()
-        plt.plot(elapsed_minutes, der_approx_2)
+        plt.plot(elapsed_minutes, slope_of_alpha)
+
+        print np.max(slope_of_alpha)
+        if np.all(slope_of_alpha < 0):
+            print 'Missed exponential phase... :('
+            return np.nan, np.nan
+
+        #plt.figure()
+        #plt.plot(elapsed_minutes, der_approx)
+        #plt.figure()
+        #plt.plot(elapsed_minutes, der_approx_2)
 
         # Get the maximum
         maximum_index = np.argmax(alpha)
