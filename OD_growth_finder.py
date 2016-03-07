@@ -6,7 +6,7 @@ import datetime as datetime
 
 class OD_growth_experiment(object):
 
-    def __init__(self, path_to_data, output_path = './', s=0.2, cutoff_logOD=-6):
+    def __init__(self, path_to_data, output_path = './', s=0.2, cutoff_OD =.05):
         self.path_to_data = path_to_data
         self.data = pd.read_excel(path_to_data)
         # Drop the rows that have NAN's, usually at the end
@@ -26,13 +26,13 @@ class OD_growth_experiment(object):
         self.s = s
 
         # You ignore values with an OD lower than this.
-        self.cutoff_logOD = cutoff_logOD
+        self.cutoff_OD = cutoff_OD
 
     def get_max_growth_rate(self, well_str):
-        data_to_use = np.log(self.data.loc[:, well_str]).values # Log of the OD
-        # Drop the negative infinities...indistinguishable from noise
-        to_keep = data_to_use > self.cutoff_logOD
+        data_to_use = self.data.loc[:, well_str].values # Log of the OD
+        # Drop the zeros
 
+        to_keep = data_to_use > self.cutoff_OD
         data_to_use = data_to_use[to_keep]
         elapsed_minutes = self.elapsed_minutes[to_keep]
 
@@ -42,9 +42,14 @@ class OD_growth_experiment(object):
         # Get the approximation of the derivative at all points
         der_approx = der(elapsed_minutes)
 
+        # Calculate the slope
+        alpha = (1./data_to_use)*der_approx
+
+        plt.plot(elapsed_minutes, alpha)
+
         # Get the maximum
-        maximum_index = np.argmax(der_approx)
-        maximum_log_slope = der_approx[maximum_index]
+        maximum_index = np.argmax(alpha)
+        maximum_log_slope = alpha[maximum_index]
         maximum_time = elapsed_minutes[maximum_index]
 
         return maximum_log_slope, maximum_time
