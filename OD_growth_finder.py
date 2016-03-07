@@ -37,15 +37,21 @@ class OD_growth_experiment(object):
         elapsed_minutes = self.elapsed_minutes[to_keep]
 
         interpolator = sp.interpolate.UnivariateSpline(elapsed_minutes, data_to_use, k=5, s=self.s)
-        der = interpolator.derivative()
+        der = interpolator.derivative(n=1)
+        der_2 = interpolator.derivative(n=2)
 
         # Get the approximation of the derivative at all points
         der_approx = der(elapsed_minutes)
+        der_approx_2 = der_2(elapsed_minutes)
 
         # Calculate the slope
         alpha = (1./data_to_use)*der_approx
 
         plt.plot(elapsed_minutes, alpha)
+        plt.figure()
+        plt.plot(elapsed_minutes, der_approx)
+        plt.figure()
+        plt.plot(elapsed_minutes, der_approx_2)
 
         # Get the maximum
         maximum_index = np.argmax(alpha)
