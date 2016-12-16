@@ -81,7 +81,7 @@ class OD_growth_experiment(object):
 
         plt.legend(loc='best')
 
-        plt.ylim(-10, 1)
+        #plt.ylim(-10, 1)
 
     def get_all_growth_rates(self, save_pictures=False):
 
