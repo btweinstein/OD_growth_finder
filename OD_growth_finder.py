@@ -28,7 +28,7 @@ class OD_growth_experiment(object):
         # You ignore values with an OD lower than this.
         self.cutoff_logOD = cutoff_logOD
 
-    def get_max_growth_rate(self, well_str):
+    def get_max_growth_rate(self, well_str, debug=False):
         data_to_use = np.log(self.data.loc[:, well_str]).values # Log of the OD
         # Drop the negative infinities...indistinguishable from noise
         to_keep = data_to_use > self.cutoff_logOD
@@ -37,10 +37,21 @@ class OD_growth_experiment(object):
         elapsed_minutes = self.elapsed_minutes[to_keep]
 
         interpolator = sp.interpolate.UnivariateSpline(elapsed_minutes, data_to_use, k=5, s=self.s)
+
+        if debug:
+            plt.figure()
+            plt.plot(self.elapsed_minutes, data_to_use, ls='', marker='.')
+            plt.plot(self.elapsed_minutes, interpolator(self.elapsed_minutes), color='black')
+
         der = interpolator.derivative()
 
         # Get the approximation of the derivative at all points
         der_approx = der(elapsed_minutes)
+
+        if debug:
+            plt.figure()
+            plt.plot(self.elapsed_minutes, der_approx)
+            plt.figure()
 
         # Get the maximum
         maximum_index = np.argmax(der_approx)
@@ -59,8 +70,8 @@ class OD_growth_experiment(object):
 
         plt.legend(loc='best')
 
-    def plot_growth_prediction(self, well_str, minutes_around_max=100):
-        maximum_log_slope, maximum_time= self.get_max_growth_rate(well_str)
+    def plot_growth_prediction(self, well_str, minutes_around_max=100, **kwargs):
+        maximum_log_slope, maximum_time= self.get_max_growth_rate(well_str, **kwargs)
 
         data_to_use = np.log(self.data.loc[:, well_str]) # Log of the OD...make sure background is subtracted
         # Drop the negative infinities...indistinguishable from noise
