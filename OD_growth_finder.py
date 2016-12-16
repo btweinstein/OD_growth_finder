@@ -58,10 +58,10 @@ class OD_growth_experiment(object):
             print 'Missed exponential phase... :('
             return np.nan, np.nan
 
-        #plt.figure()
-        #plt.plot(elapsed_minutes, der_approx)
-        #plt.figure()
-        #plt.plot(elapsed_minutes, der_approx_2)
+        plt.figure()
+        plt.plot(elapsed_minutes, der_approx)
+        plt.figure()
+        plt.plot(elapsed_minutes, der_approx_2)
 
         # Get the maximum
         maximum_index = np.argmax(alpha)
